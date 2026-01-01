@@ -55,6 +55,16 @@ echo ""
 echo "3. Installing NVIDIA Container Toolkit..."
 if command -v nvidia-container-toolkit &> /dev/null; then
     echo "✓ NVIDIA Container Toolkit already installed"
+    nvidia-container-toolkit --version
+elif [ -f /etc/docker/daemon.json ] && grep -q "nvidia-container-runtime" /etc/docker/daemon.json; then
+    echo "✓ NVIDIA Container Toolkit appears to be configured (found in daemon.json)"
+    echo "   Verifying installation..."
+    if ! command -v nvidia-container-toolkit &> /dev/null; then
+        echo "   WARNING: daemon.json configured but nvidia-container-toolkit command not found"
+        echo "   Installing NVIDIA Container Toolkit..."
+    else
+        echo "   ✓ Installation verified"
+    fi
 else
     echo "Installing NVIDIA Container Toolkit..."
     
