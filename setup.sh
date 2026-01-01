@@ -104,13 +104,23 @@ fi
 
 docker --version
 docker compose version
+
+# Add current user to docker group if not already added
+if ! groups | grep -q docker; then
+    echo "   Adding $SUDO_USER to docker group..."
+    usermod -aG docker $SUDO_USER
+    echo "   NOTE: You may need to log out and back in for docker group changes to take effect"
+    echo "   Or run: newgrp docker"
+fi
+
 echo "✓ Docker ready"
 echo ""
 
 # 6. Test GPU access in Docker
 echo "5. Testing GPU access in Docker..."
+# Use a valid CUDA image tag (12.0.0-base works for most systems)
 # Try the test and capture output
-TEST_OUTPUT=$(docker run --rm --gpus all nvidia/cuda:12.0.0-base-ubuntu24.04 nvidia-smi 2>&1)
+TEST_OUTPUT=$(docker run --rm --gpus all nvidia/cuda:12.0.0-base nvidia-smi 2>&1)
 TEST_EXIT=$?
 
 if [ $TEST_EXIT -eq 0 ]; then
@@ -125,7 +135,9 @@ else
     echo "   sudo cat /etc/docker/daemon.json"
     echo "2. Restart Docker: sudo systemctl restart docker"
     echo "3. Verify Container Toolkit: nvidia-container-toolkit --version"
-    echo "4. Try manual test: docker run --rm --gpus all nvidia/cuda:12.0.0-base-ubuntu24.04 nvidia-smi"
+    echo "4. Try manual test: docker run --rm --gpus all nvidia/cuda:12.0.0-base nvidia-smi"
+    echo "5. If permission denied, add user to docker group: sudo usermod -aG docker $USER"
+    echo "   Then log out and back in, or run: newgrp docker"
     exit 1
 fi
 echo ""
