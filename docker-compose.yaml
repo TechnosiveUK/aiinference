@@ -30,11 +30,11 @@ services:
     networks:
       - ai-stack-internal
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      test: ["CMD-SHELL", "wget --spider --quiet http://localhost:11434/api/tags || curl -f http://localhost:11434/api/tags || exit 0"]
       interval: 30s
       timeout: 10s
-      retries: 3
-      start_period: 60s
+      retries: 5
+      start_period: 120s  # Ollama can take time to start, especially on first run
     # Internal port only - not exposed to host
     expose:
       - "11434"
