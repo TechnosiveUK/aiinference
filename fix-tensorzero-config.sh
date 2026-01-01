@@ -1,0 +1,44 @@
+#!/bin/bash
+# Quick fix script for TensorZero config on server
+
+cat > /opt/aiinference/config/tensorzero.toml << 'EOF'
+# TensorZero LLM Gateway Configuration for PrivaXAI
+# Purpose: Routes requests to Ollama, provides observability
+
+[gateway]
+host = "0.0.0.0"
+port = 3000
+
+# Model configuration for Qwen 2.5 Coder 7B
+[models]
+[models.qwen2.5-coder-7b]
+name = "qwen2.5-coder:7b"
+provider = "ollama"
+base_url = "http://ollama:11434"
+
+# Rate limiting
+[rate_limiting]
+enabled = true
+
+# Per-tier rate limits
+[rate_limiting.tiers.starter]
+rpm = 60
+tpm = 100000
+
+[rate_limiting.tiers.pro]
+rpm = 120
+tpm = 250000
+
+[rate_limiting.tiers.enterprise]
+rpm = 300
+tpm = 1000000
+
+# Metrics/observability (ClickHouse)
+[metrics]
+enabled = true
+# ClickHouse URL is set via TENSORZERO_CLICKHOUSE_URL environment variable
+EOF
+
+echo "✓ TensorZero config fixed"
+echo "Now restart gateway: docker compose restart gateway"
+
