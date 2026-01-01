@@ -2,8 +2,6 @@
 # Purpose: Production-grade AI inference stack with GPU support for PrivaXAI SaaS platform
 # Hardware: NVIDIA T4 (16GB VRAM), 32GB RAM, 8 cores, Ubuntu 24.04 LTS
 
-version: '3.8'
-
 services:
   # Ollama - GPU-accelerated LLM inference engine
   # Purpose: Runs Qwen 2.5 Coder 7B model on NVIDIA T4 GPU
