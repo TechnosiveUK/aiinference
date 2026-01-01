@@ -164,11 +164,15 @@ else
 fi
 echo ""
 
-# 7. Set permissions for directories
-echo "6. Setting up directory permissions..."
+# 7. Create and set permissions for directories
+echo "6. Setting up directory structure..."
+# Create directories if they don't exist
+mkdir -p ollama clickhouse_data logs config/clickhouse
+# Set ownership
 chown -R $SUDO_USER:$SUDO_USER ollama clickhouse_data logs config 2>/dev/null || true
+# Set permissions
 chmod -R 755 ollama clickhouse_data logs config
-echo "✓ Directory permissions set"
+echo "✓ Directory structure created and permissions set"
 echo ""
 
 echo "=== Setup Complete ==="
