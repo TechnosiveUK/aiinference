@@ -118,10 +118,17 @@ echo ""
 
 # 6. Test GPU access in Docker
 echo "5. Testing GPU access in Docker..."
-# Use a valid CUDA image tag (12.0.0-base works for most systems)
+# Use a valid CUDA image tag (try latest first, fallback to 12.2.0-base-ubuntu22.04)
 # Try the test and capture output
-TEST_OUTPUT=$(docker run --rm --gpus all nvidia/cuda:12.0.0-base nvidia-smi 2>&1)
+TEST_OUTPUT=$(docker run --rm --gpus all nvidia/cuda:latest nvidia-smi 2>&1)
 TEST_EXIT=$?
+
+# If latest fails, try a specific version
+if [ $TEST_EXIT -ne 0 ]; then
+    echo "   Trying alternative CUDA image tag..."
+    TEST_OUTPUT=$(docker run --rm --gpus all nvidia/cuda:12.2.0-base-ubuntu22.04 nvidia-smi 2>&1)
+    TEST_EXIT=$?
+fi
 
 if [ $TEST_EXIT -eq 0 ]; then
     echo "✓ GPU access verified in Docker"
@@ -135,7 +142,8 @@ else
     echo "   sudo cat /etc/docker/daemon.json"
     echo "2. Restart Docker: sudo systemctl restart docker"
     echo "3. Verify Container Toolkit: nvidia-container-toolkit --version"
-    echo "4. Try manual test: docker run --rm --gpus all nvidia/cuda:12.0.0-base nvidia-smi"
+    echo "4. Try manual test: docker run --rm --gpus all nvidia/cuda:latest nvidia-smi"
+    echo "   Or try: docker run --rm --gpus all nvidia/cuda:12.2.0-base-ubuntu22.04 nvidia-smi"
     echo "5. If permission denied, add user to docker group: sudo usermod -aG docker $USER"
     echo "   Then log out and back in, or run: newgrp docker"
     exit 1
