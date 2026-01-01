@@ -2,7 +2,8 @@
 # Quick GPU verification script
 # Use this to test GPU access in Docker after hardware provider installation
 
-set -e
+# Don't exit on error, we want to test all tags
+set +e
 
 echo "=== GPU Verification Test ==="
 echo ""
@@ -14,16 +15,29 @@ echo "Testing CUDA image tags..."
 for TAG in "${CUDA_TAGS[@]}"; do
     echo ""
     echo "Testing nvidia/cuda:$TAG..."
-    echo "  Pulling image (this may take a moment)..."
     
-    # Try to pull the image first
-    PULL_OUTPUT=$(docker pull nvidia/cuda:$TAG 2>&1)
-    PULL_EXIT=$?
-    
-    if [ $PULL_EXIT -ne 0 ]; then
-        echo "  ✗ Failed to pull image: nvidia/cuda:$TAG"
-        echo "  Error: $(echo "$PULL_OUTPUT" | tail -3)"
-        continue
+    # Check if image already exists locally
+    if docker images nvidia/cuda:$TAG --format "{{.Repository}}:{{.Tag}}" | grep -q "nvidia/cuda:$TAG"; then
+        echo "  Image already exists locally, skipping pull..."
+    else
+        echo "  Pulling image (this may take 2-5 minutes, please wait)..."
+        echo "  (If this hangs, check your network connection)"
+        
+        # Pull with timeout (5 minutes)
+        if timeout 300 docker pull nvidia/cuda:$TAG 2>&1 | tee /tmp/docker-pull.log; then
+            echo "  ✓ Image pulled successfully"
+        else
+            PULL_EXIT=$?
+            if [ $PULL_EXIT -eq 124 ]; then
+                echo "  ✗ Pull timed out after 5 minutes"
+                echo "  Check network connection or try again later"
+            else
+                echo "  ✗ Failed to pull image: nvidia/cuda:$TAG"
+                echo "  Error:"
+                tail -5 /tmp/docker-pull.log 2>/dev/null || echo "  (Check network connection)"
+            fi
+            continue
+        fi
     fi
     
     echo "  Image pulled successfully, testing GPU access..."
