@@ -72,7 +72,22 @@ else
     
     # Configure Docker
     nvidia-ctk runtime configure --runtime=docker
+    
+    # Restart Docker to apply changes
     systemctl restart docker
+    
+    # Wait for Docker to be ready after restart
+    echo "   Waiting for Docker to be ready..."
+    sleep 5
+    timeout=30
+    elapsed=0
+    while [ $elapsed -lt $timeout ]; do
+        if docker info &> /dev/null; then
+            break
+        fi
+        sleep 2
+        elapsed=$((elapsed + 2))
+    done
     
     echo "✓ NVIDIA Container Toolkit installed"
 fi
@@ -94,10 +109,23 @@ echo ""
 
 # 6. Test GPU access in Docker
 echo "5. Testing GPU access in Docker..."
-if docker run --rm --gpus all nvidia/cuda:12.0.0-base-ubuntu24.04 nvidia-smi &> /dev/null; then
+# Try the test and capture output
+TEST_OUTPUT=$(docker run --rm --gpus all nvidia/cuda:12.0.0-base-ubuntu24.04 nvidia-smi 2>&1)
+TEST_EXIT=$?
+
+if [ $TEST_EXIT -eq 0 ]; then
     echo "✓ GPU access verified in Docker"
 else
-    echo "ERROR: GPU not accessible in Docker. Check NVIDIA Container Toolkit installation."
+    echo "ERROR: GPU not accessible in Docker"
+    echo "Error output:"
+    echo "$TEST_OUTPUT" | head -20
+    echo ""
+    echo "Troubleshooting steps:"
+    echo "1. Verify Docker daemon.json has nvidia runtime:"
+    echo "   sudo cat /etc/docker/daemon.json"
+    echo "2. Restart Docker: sudo systemctl restart docker"
+    echo "3. Verify Container Toolkit: nvidia-container-toolkit --version"
+    echo "4. Try manual test: docker run --rm --gpus all nvidia/cuda:12.0.0-base-ubuntu24.04 nvidia-smi"
     exit 1
 fi
 echo ""
