@@ -1,0 +1,105 @@
+# PrivaXAI AI Inference Stack - vLLM Configuration
+# Purpose: Example docker-compose with vLLM for performance upgrade
+# Use this as reference when upgrading from Ollama to vLLM
+
+version: '3.8'
+
+services:
+  # vLLM - High-performance inference engine
+  # Purpose: Better throughput and concurrency than Ollama
+  # Use this instead of Ollama for production scale
+  vllm:
+    image: vllm/vllm-openai:latest
+    container_name: privaxai-vllm
+    restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    command: >
+      --model Qwen/Qwen2.5-Coder-7B-Instruct
+      --gpu-memory-utilization 0.90
+      --max-model-len 8192
+      --tensor-parallel-size 1
+      --dtype half
+      --max-num-batched-tokens 8192
+      --enable-prefix-caching
+      --max-num-seqs 256
+    volumes:
+      - ./logs/vllm:/var/log/vllm
+    networks:
+      - ai-stack-internal
+    # Internal port only - not exposed to host
+    expose:
+      - "8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s  # vLLM takes longer to start
+
+  # TensorZero - LLM Gateway (same as before)
+  tensorzero:
+    image: tensorzero/tensorzero:latest
+    container_name: privaxai-gateway
+    restart: unless-stopped
+    depends_on:
+      vllm:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+    volumes:
+      - ./config/tensorzero.toml:/etc/tensorzero/config.toml:ro
+      - ./logs/tensorzero:/var/log/tensorzero
+    environment:
+      - TENSORZERO_CONFIG=/etc/tensorzero/config.toml
+    networks:
+      - ai-stack-internal
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # ClickHouse - Telemetry (same as before)
+  clickhouse:
+    image: clickhouse/clickhouse-server:latest
+    container_name: privaxai-clickhouse
+    restart: unless-stopped
+    volumes:
+      - ./clickhouse_data:/var/lib/clickhouse
+      - ./config/clickhouse:/etc/clickhouse-server/config.d:ro
+      - ./logs/clickhouse:/var/log/clickhouse
+    environment:
+      - CLICKHOUSE_DB=tensorzero
+    networks:
+      - ai-stack-internal
+    expose:
+      - "8123"
+      - "9000"
+    healthcheck:
+      test: ["CMD", "clickhouse-client", "--query", "SELECT 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+
+networks:
+  ai-stack-internal:
+    driver: bridge
+
+volumes:
+  clickhouse_data:
+    driver: local
+

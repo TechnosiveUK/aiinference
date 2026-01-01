@@ -39,11 +39,13 @@ completion_model = "qwen2.5-coder:7b"
 # Observability and telemetry
 [observability]
 enabled = true
-# ClickHouse for token usage tracking
+# ClickHouse for production-grade tenant metering
 telemetry_backend = "clickhouse"
 clickhouse_url = "http://clickhouse:8123"
 clickhouse_database = "tensorzero"
-clickhouse_table = "token_usage"
+clickhouse_table = "llm_requests"  # Production table
+# Legacy table for backward compatibility
+clickhouse_legacy_table = "token_usage"
 
 # Rate limiting (to be configured per tenant later)
 [rate_limiting]
@@ -51,10 +53,24 @@ enabled = true
 default_rpm = 60  # requests per minute
 default_tpm = 100000  # tokens per minute
 
-# Tenant identification via headers
+# Tenant identification via headers (PrivaXAI API Contract)
+# Required headers for production:
+# - Authorization: Bearer <privaxai-service-token>
+# - X-Tenant-ID: tenant_123 (required)
+# - X-User-ID: user_456 (optional)
+# - X-Plan-Tier: pro (optional)
+# - X-Request-ID: uuid (optional)
 [tenant]
 header_name = "x-tenant-id"
-require_header = false  # Set to true in production
+require_header = true  # Required in production for audit safety
+user_header = "x-user-id"
+plan_header = "x-plan-tier"
+request_id_header = "x-request-id"
+
+# Authentication
+[auth]
+enabled = false  # Set to true when service token is configured
+bearer_token_header = "Authorization"
 
 # Health check endpoint
 [health]
