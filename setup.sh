@@ -118,17 +118,21 @@ echo ""
 
 # 6. Test GPU access in Docker
 echo "5. Testing GPU access in Docker..."
-# Use a valid CUDA image tag (try latest first, fallback to 12.2.0-base-ubuntu22.04)
-# Try the test and capture output
-TEST_OUTPUT=$(docker run --rm --gpus all nvidia/cuda:latest nvidia-smi 2>&1)
-TEST_EXIT=$?
+# Use a reliable CUDA image tag
+# Try multiple tags in order of preference
+CUDA_TAGS=("12.2.0-base-ubuntu22.04" "latest" "11.8.0-base-ubuntu22.04")
+TEST_EXIT=1
+TEST_OUTPUT=""
 
-# If latest fails, try a specific version
-if [ $TEST_EXIT -ne 0 ]; then
-    echo "   Trying alternative CUDA image tag..."
-    TEST_OUTPUT=$(docker run --rm --gpus all nvidia/cuda:12.2.0-base-ubuntu22.04 nvidia-smi 2>&1)
+for TAG in "${CUDA_TAGS[@]}"; do
+    echo "   Testing with nvidia/cuda:$TAG..."
+    TEST_OUTPUT=$(docker run --rm --gpus all nvidia/cuda:$TAG nvidia-smi 2>&1)
     TEST_EXIT=$?
-fi
+    if [ $TEST_EXIT -eq 0 ]; then
+        echo "   ✓ Success with nvidia/cuda:$TAG"
+        break
+    fi
+done
 
 if [ $TEST_EXIT -eq 0 ]; then
     echo "✓ GPU access verified in Docker"
