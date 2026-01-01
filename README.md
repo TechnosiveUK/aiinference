@@ -209,7 +209,7 @@ docker compose exec clickhouse clickhouse-client --query "SELECT 1"
 nvidia-smi
 
 # Verify Container Toolkit
-docker run --rm --gpus all nvidia/cuda:12.0.0-base-ubuntu24.04 nvidia-smi
+docker run --rm --gpus all nvidia/cuda:latest nvidia-smi
 
 # Reinstall Container Toolkit (if needed)
 sudo ./setup.sh
@@ -308,6 +308,16 @@ This stack is designed for easy Kubernetes migration:
 └── README.md                     # This file
 ```
 
+## Documentation
+
+See **[DOCUMENTATION.md](DOCUMENTATION.md)** for complete documentation index.
+
+**Quick links:**
+- **[QUICK_START.md](QUICK_START.md)** - Quick deployment checklist
+- **[CLEAN_DEPLOYMENT.md](CLEAN_DEPLOYMENT.md)** - Complete deployment guide
+- **[API_CONTRACT.md](API_CONTRACT.md)** - API specification
+- **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)** - Common issues and solutions
+
 ## Support
 
 For issues or questions:
@@ -315,6 +325,7 @@ For issues or questions:
 2. Run verification: `./verify.sh`
 3. Check GPU: `nvidia-smi`
 4. Review configuration files
+5. See **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)** for detailed solutions
 
 ## License
 

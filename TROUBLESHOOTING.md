@@ -79,7 +79,7 @@ docker ps
 nvidia-container-toolkit --version
 
 # Test GPU access
-docker run --rm --gpus all nvidia/cuda:12.0.0-base-ubuntu24.04 nvidia-smi
+docker run --rm --gpus all nvidia/cuda:latest nvidia-smi
 
 # If it fails, reinstall Container Toolkit
 sudo ./setup.sh

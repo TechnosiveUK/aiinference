@@ -193,7 +193,7 @@ SELECT * FROM tenant_daily_usage LIMIT 10;
 - **API Contract**: See `API_CONTRACT.md`
 - **Upgrade Path**: See `VLLM_UPGRADE.md`
 - **Pricing**: See `PRICING_TIERS.md`
-- **Deployment**: See `CLEAN_DEPLOYMENT.md`
+- **Deployment**: See `CLEAN_DEPLOYMENT.md` or `QUICK_START.md`
 - **Troubleshooting**: See `TROUBLESHOOTING.md`
 
 ---

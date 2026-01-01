@@ -14,7 +14,7 @@ if ! docker info &> /dev/null; then
 fi
 
 # Check if NVIDIA Container Toolkit is available
-if ! docker run --rm --gpus all nvidia/cuda:12.0.0-base-ubuntu24.04 nvidia-smi &> /dev/null; then
+if ! docker run --rm --gpus all nvidia/cuda:latest nvidia-smi &> /dev/null; then
     echo "ERROR: GPU not accessible in Docker. Run ./setup.sh first."
     exit 1
 fi
