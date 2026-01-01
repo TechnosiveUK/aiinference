@@ -7,6 +7,18 @@ set -e
 echo "=== Starting PrivaXAI AI Inference Stack ==="
 echo ""
 
+# Check if Docker is installed
+if ! command -v docker &> /dev/null; then
+    echo "ERROR: Docker is not installed."
+    echo ""
+    echo "Please install Docker first:"
+    echo "  sudo ./install-docker.sh"
+    echo ""
+    echo "Or run the full setup:"
+    echo "  sudo ./setup.sh"
+    exit 1
+fi
+
 # Check if Docker is running
 if ! docker info &> /dev/null; then
     echo "Docker is not running. Attempting to start Docker..."
