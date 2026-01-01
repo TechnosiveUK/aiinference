@@ -9,8 +9,23 @@ echo ""
 
 # Check if Docker is running
 if ! docker info &> /dev/null; then
-    echo "ERROR: Docker is not running. Please start Docker first."
-    exit 1
+    echo "Docker is not running. Attempting to start Docker..."
+    if command -v systemctl &> /dev/null; then
+        sudo systemctl start docker
+        sleep 3
+        if docker info &> /dev/null; then
+            echo "✓ Docker started successfully"
+        else
+            echo "ERROR: Failed to start Docker. Please start it manually:"
+            echo "  sudo systemctl start docker"
+            echo "  sudo systemctl enable docker  # Enable auto-start on boot"
+            exit 1
+        fi
+    else
+        echo "ERROR: Docker is not running and systemctl not available."
+        echo "Please start Docker manually."
+        exit 1
+    fi
 fi
 
 # Check if NVIDIA Container Toolkit is available
