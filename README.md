@@ -32,42 +32,25 @@ TensorZero Gateway (Port 8000) ← Only exposed service
 
 ## Quick Start
 
-### 1. Initial Setup (Run Once)
+### For Fresh Server Deployment
+
+**👉 See [CLEAN_DEPLOYMENT.md](CLEAN_DEPLOYMENT.md) for complete step-by-step instructions**
+
+**Or use [QUICK_START.md](QUICK_START.md) for a copy-paste checklist**
+
+### Quick Commands
 
 ```bash
-# Make scripts executable
-chmod +x *.sh
-
-# Run setup (requires sudo)
+# 1. Initial Setup (Run Once)
 sudo ./setup.sh
-```
 
-This script:
-- Validates NVIDIA drivers
-- Installs NVIDIA Container Toolkit
-- Verifies GPU access in Docker
-- Sets up directory permissions
-
-### 2. Start the Stack
-
-```bash
+# 2. Start the Stack
 ./start.sh
-```
 
-This will:
-- Start all Docker services
-- Pull the Qwen 2.5 Coder 7B model (~4.4GB, first run only)
-- Verify services are healthy
-
-### 3. Verify Everything Works
-
-```bash
+# 3. Verify Everything Works
 ./verify.sh
-```
 
-### 4. Stop the Stack
-
-```bash
+# 4. Stop the Stack
 ./stop.sh
 ```
 
