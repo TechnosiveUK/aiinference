@@ -67,13 +67,11 @@ services:
       retries: 3
       start_period: 10s
 
-  # Gateway Service - LLM Gateway for routing and observability
+  # TensorZero Gateway - LLM Gateway for routing and observability
   # Purpose: Routes requests to Ollama, handles tenant headers, logs to ClickHouse
   # This is the ONLY service that PrivaXAI platform should call
   gateway:
-    build:
-      context: ./services
-      dockerfile: Dockerfile.gateway
+    image: tensorzero/gateway:latest
     container_name: privaxai-gateway
     restart: unless-stopped
     depends_on:
@@ -81,25 +79,26 @@ services:
         condition: service_healthy
       clickhouse:
         condition: service_healthy
-    environment:
-      - OLLAMA_URL=http://ollama:11434
-      - CLICKHOUSE_HOST=clickhouse
-      - CLICKHOUSE_PORT=9000
-      - CLICKHOUSE_DB=tensorzero
     volumes:
-      - ./logs/gateway:/var/log/gateway
+      # Mount tensorzero.toml configuration
+      - ./config:/app/config:ro
+    command: --config-file /app/config/tensorzero.toml
+    environment:
+      - TENSORZERO_CLICKHOUSE_URL=http://clickhouse:8123/tensorzero
+      # Optional: Set if you want to use OpenAI API key authentication
+      # - OPENAI_API_KEY=${OPENAI_API_KEY:-}
     networks:
       - ai-stack-internal
     ports:
       # Exposed internally for PrivaXAI platform to call
       # In production, this should be behind a reverse proxy or VPN
-      - "8000:8000"
+      - "8000:3000"  # TensorZero gateway uses port 3000 internally
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 10s
+      start_period: 30s
 
   # ClickHouse - Telemetry and token usage tracking
   # Purpose: Stores inference metrics, token counts, and usage data for billing/metering
