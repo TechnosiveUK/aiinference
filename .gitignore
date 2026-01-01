@@ -1,0 +1,22 @@
+# Data directories (contain large files)
+ollama/
+clickhouse_data/
+logs/
+
+# Environment files
+.env
+.env.local
+
+# Docker volumes
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+

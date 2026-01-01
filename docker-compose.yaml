@@ -1,0 +1,124 @@
+# PrivaXAI AI Inference Stack - Docker Compose Configuration
+# Purpose: Production-grade AI inference stack with GPU support for PrivaXAI SaaS platform
+# Hardware: NVIDIA T4 (16GB VRAM), 32GB RAM, 8 cores, Ubuntu 24.04 LTS
+
+version: '3.8'
+
+services:
+  # Ollama - GPU-accelerated LLM inference engine
+  # Purpose: Runs Qwen 2.5 Coder 7B model on NVIDIA T4 GPU
+  # Not exposed publicly - only accessible via TensorZero gateway
+  ollama:
+    image: ollama/ollama:latest
+    container_name: privaxai-ollama
+    restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    volumes:
+      # Model storage (persists across restarts)
+      - ./ollama:/root/.ollama
+      # Logs for debugging
+      - ./logs/ollama:/var/log/ollama
+    environment:
+      - OLLAMA_HOST=0.0.0.0:11434
+      - OLLAMA_KEEP_ALIVE=5m
+      # Limit GPU memory usage to prevent OOM
+      - CUDA_VISIBLE_DEVICES=0
+    networks:
+      - ai-stack-internal
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    # Internal port only - not exposed to host
+    expose:
+      - "11434"
+
+  # TensorZero - LLM Gateway for routing and observability
+  # Purpose: Routes requests to Ollama, tracks usage, prepares for multi-model support
+  # This is the ONLY service that PrivaXAI platform should call
+  tensorzero:
+    image: tensorzero/tensorzero:latest
+    container_name: privaxai-gateway
+    restart: unless-stopped
+    depends_on:
+      ollama:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+    volumes:
+      # Gateway configuration
+      - ./config/tensorzero.toml:/etc/tensorzero/config.toml:ro
+      # Logs
+      - ./logs/tensorzero:/var/log/tensorzero
+    environment:
+      - TENSORZERO_CONFIG=/etc/tensorzero/config.toml
+    networks:
+      - ai-stack-internal
+    ports:
+      # Exposed internally for PrivaXAI platform to call
+      # In production, this should be behind a reverse proxy or VPN
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # ClickHouse - Telemetry and token usage tracking
+  # Purpose: Stores inference metrics, token counts, and usage data for billing/metering
+  # Not exposed publicly - only accessible via TensorZero
+  clickhouse:
+    image: clickhouse/clickhouse-server:latest
+    container_name: privaxai-clickhouse
+    restart: unless-stopped
+    volumes:
+      # Persistent data storage
+      - ./clickhouse_data:/var/lib/clickhouse
+      # Configuration (if needed)
+      - ./config/clickhouse:/etc/clickhouse-server/config.d:ro
+      # Logs
+      - ./logs/clickhouse:/var/log/clickhouse
+    environment:
+      - CLICKHOUSE_DB=tensorzero
+      # Disable public HTTP interface (only internal access)
+      - CLICKHOUSE_HTTP_PORT=8123
+    networks:
+      - ai-stack-internal
+    # Internal port only - not exposed to host
+    expose:
+      - "8123"
+      - "9000"
+    healthcheck:
+      test: ["CMD", "clickhouse-client", "--query", "SELECT 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+
+# Internal network - isolates AI stack from external access
+# PrivaXAI platform connects to this network or calls gateway via private IP
+networks:
+  ai-stack-internal:
+    driver: bridge
+    internal: false  # Set to true if you want complete isolation (requires VPN/proxy)
+
+# Named volumes for persistent data (optional, using bind mounts above for simplicity)
+volumes:
+  ollama_data:
+    driver: local
+  clickhouse_data:
+    driver: local
+

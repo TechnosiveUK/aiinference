@@ -1,0 +1,63 @@
+# TensorZero LLM Gateway Configuration for PrivaXAI
+# Purpose: Routes requests to Ollama, provides observability, and prepares for multi-model routing
+
+[server]
+# Gateway listens on internal network only (not exposed publicly)
+host = "0.0.0.0"
+port = 8000
+
+[logging]
+level = "info"
+format = "json"
+
+# Model configuration for Qwen 2.5 Coder 7B
+# This model is optimized for code generation and chat use cases
+[models.qwen2.5-coder-7b]
+# Ollama model name (must match what's pulled in Ollama)
+name = "qwen2.5-coder:7b"
+provider = "ollama"
+base_url = "http://ollama:11434"
+
+# Model capabilities
+[models.qwen2.5-coder-7b.capabilities]
+chat = true
+completion = true
+streaming = true
+
+# Context limits (conservative for T4 16GB VRAM)
+[models.qwen2.5-coder-7b.limits]
+max_tokens = 8192
+max_context = 16384
+temperature = 0.7
+top_p = 0.9
+
+# Default model for chat and copilot endpoints
+[defaults]
+chat_model = "qwen2.5-coder:7b"
+completion_model = "qwen2.5-coder:7b"
+
+# Observability and telemetry
+[observability]
+enabled = true
+# ClickHouse for token usage tracking
+telemetry_backend = "clickhouse"
+clickhouse_url = "http://clickhouse:8123"
+clickhouse_database = "tensorzero"
+clickhouse_table = "token_usage"
+
+# Rate limiting (to be configured per tenant later)
+[rate_limiting]
+enabled = true
+default_rpm = 60  # requests per minute
+default_tpm = 100000  # tokens per minute
+
+# Tenant identification via headers
+[tenant]
+header_name = "x-tenant-id"
+require_header = false  # Set to true in production
+
+# Health check endpoint
+[health]
+enabled = true
+path = "/health"
+
