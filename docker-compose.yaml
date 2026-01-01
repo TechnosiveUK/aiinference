@@ -41,6 +41,34 @@ services:
     expose:
       - "11434"
 
+  # Usage Service - Token limit enforcement and usage dashboard API
+  # Purpose: Enforces monthly token limits per tier and provides usage statistics
+  # Used by TensorZero gateway to check limits before processing requests
+  usage-service:
+    build:
+      context: ./services
+      dockerfile: Dockerfile
+    container_name: privaxai-usage-service
+    restart: unless-stopped
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+    environment:
+      - CLICKHOUSE_HOST=clickhouse
+      - CLICKHOUSE_PORT=9000
+      - CLICKHOUSE_DB=tensorzero
+    networks:
+      - ai-stack-internal
+    # Internal port only - not exposed to host
+    expose:
+      - "8080"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
   # TensorZero - LLM Gateway for routing and observability
   # Purpose: Routes requests to Ollama, tracks usage, prepares for multi-model support
   # This is the ONLY service that PrivaXAI platform should call
@@ -52,6 +80,8 @@ services:
       ollama:
         condition: service_healthy
       clickhouse:
+        condition: service_healthy
+      usage-service:
         condition: service_healthy
     volumes:
       # Gateway configuration

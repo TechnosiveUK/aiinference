@@ -44,12 +44,17 @@ if [ $elapsed -lt $timeout ]; then
     echo "4. Initializing ClickHouse database and tables..."
     docker compose exec -T clickhouse clickhouse-client < config/clickhouse/init.sql
     echo "✓ ClickHouse initialized"
+    
+    # Initialize usage queries and views
+    echo "5. Initializing usage queries and views..."
+    docker compose exec -T clickhouse clickhouse-client < config/clickhouse/usage_queries.sql 2>/dev/null || echo "   (Usage queries may already exist)"
+    echo "✓ Usage queries initialized"
 else
     echo "WARNING: ClickHouse did not become ready in time, skipping initialization"
 fi
 
 # Wait for Ollama to be ready
-echo "5. Waiting for Ollama to be ready..."
+echo "6. Waiting for Ollama to be ready..."
 timeout=120
 elapsed=0
 while [ $elapsed -lt $timeout ]; do
@@ -69,7 +74,7 @@ if [ $elapsed -ge $timeout ]; then
 fi
 
 # Pull Qwen 2.5 Coder 7B model
-echo "6. Pulling Qwen 2.5 Coder 7B model (this may take several minutes)..."
+echo "7. Pulling Qwen 2.5 Coder 7B model (this may take several minutes)..."
 echo "   Model size: ~4.4GB"
 docker compose exec -T ollama ollama pull qwen2.5-coder:7b
 
@@ -81,7 +86,7 @@ else
 fi
 
 # Verify model is available
-echo "7. Verifying model..."
+echo "8. Verifying model..."
 MODELS=$(docker compose exec -T ollama ollama list)
 if echo "$MODELS" | grep -q "qwen2.5-coder:7b"; then
     echo "✓ Model verified"

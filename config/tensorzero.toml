@@ -47,11 +47,41 @@ clickhouse_table = "llm_requests"  # Production table
 # Legacy table for backward compatibility
 clickhouse_legacy_table = "token_usage"
 
-# Rate limiting (to be configured per tenant later)
+# Rate limiting - Per-tier configuration
 [rate_limiting]
 enabled = true
-default_rpm = 60  # requests per minute
-default_tpm = 100000  # tokens per minute
+
+# Per-tier rate limits (matches PRICING_TIERS.md)
+[rate_limiting.tiers.starter]
+rpm = 60          # requests per minute
+tpm = 100000      # tokens per minute
+max_context = 4096
+monthly_token_limit = 5000000  # 5M tokens
+
+[rate_limiting.tiers.pro]
+rpm = 120
+tpm = 250000
+max_context = 8192
+monthly_token_limit = 25000000  # 25M tokens
+
+[rate_limiting.tiers.enterprise]
+rpm = 300
+tpm = 1000000
+max_context = 16384
+monthly_token_limit = 100000000  # 100M tokens
+
+# Default (fallback for unknown tiers)
+default_rpm = 60
+default_tpm = 100000
+default_monthly_token_limit = 5000000
+
+# Token limit enforcement
+[rate_limiting.token_limits]
+enabled = true
+check_before_request = true  # Check monthly limit before processing
+usage_service_url = "http://usage-service:8080/api/v1/usage/check"
+soft_limit_warning = 0.80  # Warn at 80% of limit
+hard_limit_reject = true   # Reject requests when limit exceeded
 
 # Tenant identification via headers (PrivaXAI API Contract)
 # Required headers for production:
