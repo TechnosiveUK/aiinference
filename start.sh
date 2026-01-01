@@ -100,36 +100,38 @@ fi
 
 # Wait for Ollama to be ready
 echo "6. Waiting for Ollama to be ready..."
-timeout=120
+timeout=60
 elapsed=0
 while [ $elapsed -lt $timeout ]; do
-    # Check if Ollama container is running and port is accessible
-    # Use docker exec to check if process is running and port is listening
-    if docker compose exec -T ollama sh -c "pgrep -f 'ollama serve' > /dev/null && (nc -z localhost 11434 2>/dev/null || ss -tlnp 2>/dev/null | grep -q ':11434')" &> /dev/null; then
-        echo "✓ Ollama is ready"
-        break
-    fi
-    # Alternative: Check from host if port is accessible
-    if docker compose port ollama 11434 &> /dev/null; then
-        # Try to connect from another container
-        if docker compose run --rm --no-deps gateway sh -c "nc -z ollama 11434 2>/dev/null || wget --spider --quiet http://ollama:11434/api/tags 2>/dev/null" &> /dev/null 2>&1; then
-            echo "✓ Ollama is ready (checked from gateway)"
+    # Check if Ollama container is running
+    CONTAINER_STATUS=$(docker compose ps ollama --format json 2>/dev/null | grep -o '"State":"[^"]*"' | cut -d'"' -f4 || echo "")
+    if [ "$CONTAINER_STATUS" = "running" ]; then
+        # Check if we can see "Listening" in logs (Ollama is ready when it logs this)
+        if docker compose logs ollama 2>/dev/null | grep -q "Listening on"; then
+            echo "✓ Ollama is ready"
             break
         fi
     fi
-    sleep 5
-    elapsed=$((elapsed + 5))
-    echo "  Waiting... ($elapsed/$timeout seconds)"
+    sleep 3
+    elapsed=$((elapsed + 3))
+    if [ $((elapsed % 15)) -eq 0 ]; then
+        echo "  Waiting... ($elapsed/$timeout seconds)"
+    fi
 done
 
 if [ $elapsed -ge $timeout ]; then
-    echo "WARNING: Ollama readiness check timed out, but container appears to be running"
+    echo "WARNING: Ollama readiness check timed out"
     echo "Checking Ollama status..."
     docker compose ps ollama
-    docker compose logs --tail=20 ollama
     echo ""
-    echo "Attempting to continue anyway (Ollama may be ready but healthcheck failed)..."
-    # Don't exit - Ollama might be working even if healthcheck fails
+    echo "Checking if Ollama is actually running..."
+    if docker compose logs ollama 2>/dev/null | grep -q "Listening on"; then
+        echo "✓ Ollama appears to be running (found 'Listening on' in logs)"
+        echo "  Proceeding anyway..."
+    else
+        echo "✗ Ollama may not be ready. Check logs: docker compose logs ollama"
+        echo "  Attempting to continue anyway..."
+    fi
 fi
 
 # Pull Qwen 2.5 Coder 7B model
